@@ -1,66 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Redlined Areas Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map {
-            height: 600px;
-        }
-    </style>
+  <title>Redlined Lexington Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <style>
+    #map {
+      height: 600px;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script>
-        // Initialize the map and set its view to Lexington, KY
-        var map = L.map('map').setView([38.0406, -84.5037], 12);
+  <h2>Redlined Areas in Lexington, KY</h2>
+  <div id="map"></div>
 
-        // Add a tile layer to the map
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  <script>
+    // Initialize map
+    var map = L.map('map').setView([38.0406, -84.5037], 12); // Lexington coordinates
+
+    // Base map layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Load GeoJSON and apply styles
+    fetch('redline.geojson')
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: function (feature) {
+            let grade = feature.properties.grade || feature.properties.HOLC_grade || 'unknown';
+            return {
+              color: "#000",
+              weight: 1,
+              fillOpacity: 0.5,
+              fillColor:
+                grade === "A" ? "#00FF00" :
+                grade === "B" ? "#0000FF" :
+                grade === "C" ? "#FFFF00" :
+                grade === "D" ? "#FF0000" :
+                "#CCCCCC"
+            };
+          },
+          onEachFeature: function (feature, layer) {
+            if (feature.properties && feature.properties.grade) {
+              layer.bindPopup("HOLC Grade: " + feature.properties.grade);
+            }
+          }
         }).addTo(map);
-
-        // Function to get color based on HOLC grade
-        function getColor(grade) {
-            return grade === 'A' ? '#008000' :   // Green
-                   grade === 'B' ? '#FFD700' :   // Yellow
-                   grade === 'C' ? '#FFA500' :   // Orange
-                   grade === 'D' ? '#FF0000' :   // Red
-                                  '#FFFFFF';     // White (default)
-        }
-
-        // Function to style each feature based on its properties (HOLC grade)
-        function style(feature) {
-            return {
-                fillColor: getColor(feature.properties.grade),
-                weight: 2,
-                opacity: 1,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            };
-        }
-
-        // Load GeoJSON data and add to map (replace 'redliningGeoJSONData' with actual variable containing GeoJSON data)
-        L.geoJson(redliningGeoJSONData, {style: style}).addTo(map);
-
-        // Function to style modern census tracts
-        function styleTract(feature) {
-            return {
-                fillColor: 'transparent', // Keep transparent to view redlined areas below
-                weight: 1,
-                opacity: 0.8,
-                color: 'blue', // Blue borders for modern tracts
-                dashArray: '3',
-                fillOpacity: 0
-            };
-        }
-
-        // Load GeoJSON data and add to map (replace 'censusTractGeoJSONData' with actual variable containing GeoJSON data)
-        L.geoJson(censusTractGeoJSONData, {style: styleTract}).addTo(map);
-    </script>
+      })
+      .catch(err => console.error("GeoJSON load error:", err));
+  </script>
 </body>
 </html>
